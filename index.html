@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firewall Log Dashboard</title>
+  <meta name="description" content="Minimalist Firewall Log Dashboard with Authentication, SQLite Database, 500 Records, Pagination, and Analytics Graphs.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js for the Analytics Page -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  
+  <!-- Fallback dataset -->
+  <script src="data.js"></script>
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- =======================================================================
+       SCREEN 1: AUTHENTICATION GATE (Shown First if Not Logged In)
+       ======================================================================= -->
+  <div id="authScreen" class="auth-page">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <span class="auth-logo">🛡️</span>
+        <h2>Firewall Security Portal</h2>
+        <p>Please sign in or create an account to access the log dashboard</p>
+      </div>
+
+      <!-- Sign In vs Register Tabs -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin">Sign In</button>
+        <button class="auth-tab" id="tabRegister">Register</button>
+      </div>
+
+      <!-- Alert Box -->
+      <div class="alert-box" id="authAlert" role="status" aria-live="polite"></div>
+
+      <!-- Form 1: Sign In -->
+      <form id="formLogin" class="auth-form">
+        <div class="input-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" required placeholder="you@company.com">
+        </div>
+        <div class="input-group">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign In to Dashboard</button>
+      </form>
+
+      <!-- Form 2: Register -->
+      <form id="formRegister" class="auth-form" style="display: none;">
+        <div class="input-group">
+          <label for="regName">Full Name</label>
+          <input type="text" id="regName" required placeholder="Your Name">
+        </div>
+        <div class="input-group">
+          <label for="regEmail">Email Address</label>
+          <input type="email" id="regEmail" required placeholder="you@company.com">
+        </div>
+        <div class="input-group">
+          <label for="regPass">Password</label>
+          <input type="password" id="regPass" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Account</button>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- =======================================================================
+       SCREEN 2: DASHBOARD (Shown ONLY After Successful Sign In / Register)
+       ======================================================================= -->
+  <div id="dashboardScreen" style="display: none;">
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="brand-badge-icon">🛡️</div>
+        <div>
+          <h1 class="brand-title">Firewall Log Dashboard</h1>
+          <div class="brand-subtitle">Traffic Records & Threat Monitoring</div>
+        </div>
+      </div>
+
+      <!-- Dashboard Navigation -->
+      <nav class="nav-links">
+        <button class="nav-tab active" id="navTabLogs">📋 Logs Explorer</button>
+        <button class="nav-tab" id="navTabAnalytics">📊 Analytics & Graphs</button>
+        <button class="nav-tab" id="navTabInvestigations">🕵️ Investigations</button>
+      </nav>
+
+      <!-- User Session & Logout in Navbar -->
+      <div class="nav-auth">
+        <div class="user-badge">
+          <span>👤 <strong id="navUserName">Analyst</strong></span>
+          <button class="btn btn-sm btn-secondary" id="btnLogout">Sign Out</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- =====================================================================
+         PAGE VIEW A: LOGS EXPLORER (500 records, 25 per page)
+         ===================================================================== -->
+    <main class="container" id="viewLogs">
+
+      <!-- 3 Clean Summary KPI Cards -->
+      <section class="kpi-grid">
+        <!-- Total Logs -->
+        <div class="kpi-card">
+          <div class="kpi-label">Total Records</div>
+          <div class="kpi-value" id="kpiTotal">500</div>
+          <div class="kpi-subtext">Records loaded</div>
+        </div>
+
+        <!-- Success (Allowed) -->
+        <div class="kpi-card success">
+          <div class="kpi-label">Success (Allowed)</div>
+          <div class="kpi-value success" id="kpiSuccess">322</div>
+          <div class="kpi-subtext" id="kpiSuccessRate">64.4% Permitted Traffic</div>
+        </div>
+
+        <!-- Failed (Blocked) -->
+        <div class="kpi-card failed">
+          <div class="kpi-label">Failed (Blocked)</div>
+          <div class="kpi-value failed" id="kpiFailed">178</div>
+          <div class="kpi-subtext" id="kpiFailedRate">35.6% Denied or Dropped</div>
+        </div>
+      </section>
+
+      <!-- Records Table Section -->
+      <section class="table-section">
+        <div class="table-toolbar">
+          <!-- Status Filter Buttons -->
+          <div class="filter-group">
+            <button class="filter-btn active" data-filter="ALL" id="filterAll">All Logs (500)</button>
+            <button class="filter-btn success" data-filter="Success" id="filterSuccess">✅ Success (322)</button>
+            <button class="filter-btn failed" data-filter="Failed" id="filterFailed">❌ Failed (178)</button>
+          </div>
+
+          <!-- Search & Export -->
+          <div class="toolbar-actions">
+            <div class="search-wrap">
+              <input type="text" id="searchInput" class="search-input" placeholder="Search IP, port, protocol, service, rule, attack...">
+            </div>
+            <button class="btn btn-sm btn-secondary" id="btnExportCSV" title="Export current records as CSV">Export CSV</button>
+          </div>
+          <div class="chart-filter-notice" id="chartFilterNotice" hidden>
+            <span id="chartFilterLabel"></span>
+            <button class="btn btn-sm btn-secondary" id="btnClearChartFilter">Clear chart filter</button>
+          </div>
+        </div>
+
+        <!-- Log Table (Displays 25 records per page) -->
+        <p class="table-scroll-hint">Scroll vertically or horizontally to browse the logs.</p>
+        <div class="table-wrapper data-table-scroll" tabindex="0" aria-label="Firewall logs table; scroll vertically or horizontally to browse records">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Log ID</th>
+                <th>Timestamp</th>
+                <th>Status</th>
+                <th>Action</th>
+                <th>Source (IP:Port)</th>
+                <th>Destination (IP:Port)</th>
+                <th>Protocol / Service</th>
+                <th>Rule</th>
+                <th>Investigation</th>
+                <th style="text-align: right;">Details</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+              <!-- Rendered dynamically by app.js -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 25-Per-Page Pagination Bar -->
+        <div class="pagination-bar">
+          <span class="pagination-info" id="paginationInfo">Showing 1 - 25 of 500 records</span>
+          
+          <div class="pagination-controls">
+            <button class="btn-page" id="btnFirstPage" title="First Page">«</button>
+            <button class="btn-page" id="btnPrevPage" title="Previous Page">‹</button>
+            <span class="page-indicator" id="pageIndicator">Page 1 of 20</span>
+            <button class="btn-page" id="btnNextPage" title="Next Page">›</button>
+            <button class="btn-page" id="btnLastPage" title="Last Page">»</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+
+    <!-- =====================================================================
+         PAGE VIEW B: ANALYTICS & GRAPHS (Dedicated New Page)
+         ===================================================================== -->
+    <main class="container" id="viewAnalytics" style="display: none;">
+      
+      <div class="analytics-header">
+        <h2>Firewall Security Analytics</h2>
+        <p>Charts summarize the loaded firewall log records. Attack labels are read from the records; this dashboard does not detect attacks.</p>
+        <p>Click a chart segment or bar to filter the matching log records.</p>
+      </div>
+
+      <div class="charts-grid">
+        <!-- Chart 1: Traffic Outcome -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Traffic Access Decisions (Success vs. Failed)</h3>
+            <span class="chart-subtitle">Enforcement distribution</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="chartStatus"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Top Targeted Services -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Most Requested Services & Ports</h3>
+            <span class="chart-subtitle">Record count by service and destination port</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="chartServices"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 3: Protocol Breakdown -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Protocol Telemetry (TCP, UDP, ICMP)</h3>
+            <span class="chart-subtitle">Network layer distribution</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="chartProtocols"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 4: Detected Cyber Threats -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h3>Attack Labels in Logs</h3>
+            <span class="chart-subtitle">Record count for each stored attack label</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="chartAttacks"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <main class="container" id="viewInvestigations" style="display: none;">
+      <div class="analytics-header">
+        <h2>Investigation Queue</h2>
+        <p>Review log records you have saved for investigation. Select a record to update its status or notes.</p>
+      </div>
+
+      <section class="investigation-summary" aria-label="Investigation status counts">
+        <div class="kpi-card">
+          <div class="kpi-label">Saved Cases</div>
+          <div class="kpi-value" id="investigationTotal">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">New</div>
+          <div class="kpi-value" id="investigationNew">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Investigating</div>
+          <div class="kpi-value" id="investigationInProgress">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Resolved</div>
+          <div class="kpi-value success" id="investigationResolved">0</div>
+        </div>
+      </section>
+
+      <div class="investigation-filters" role="group" aria-label="Filter investigations by status">
+        <button class="filter-btn active" type="button" data-investigation-filter="ALL">All</button>
+        <button class="filter-btn" type="button" data-investigation-filter="New">New</button>
+        <button class="filter-btn" type="button" data-investigation-filter="Investigating">Investigating</button>
+        <button class="filter-btn" type="button" data-investigation-filter="Resolved">Resolved</button>
+      </div>
+
+      <section class="table-section">
+        <p class="table-scroll-hint">Scroll vertically or horizontally to browse investigations.</p>
+        <div class="table-wrapper data-table-scroll" tabindex="0" aria-label="Investigation cases table; scroll vertically or horizontally to browse records">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Log ID</th>
+                <th>Last Updated</th>
+                <th>Status</th>
+                <th>Firewall Action</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>Attack Label</th>
+                <th>Analyst Notes</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="investigationTableBody">
+              <tr><td colspan="9" class="empty-investigations">No saved investigations yet. Open a log and save its investigation details to add it here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <button class="help-button" id="btnOpenHelp" type="button" aria-haspopup="dialog">Instructions &amp; Approach</button>
+    <div class="help-modal-backdrop" id="helpModal" role="dialog" aria-modal="true" aria-labelledby="helpModalTitle" hidden>
+      <section class="help-modal">
+        <header class="help-modal-header">
+          <h2 id="helpModalTitle">Dashboard Guide</h2>
+          <button class="btn-close" id="btnCloseHelp" type="button" aria-label="Close guide">✕</button>
+        </header>
+        <div class="help-tabs" role="tablist" aria-label="Dashboard guide sections">
+          <button class="help-tab active" id="helpTabInstructions" type="button" role="tab" aria-selected="true" aria-controls="helpInstructions">Instructions</button>
+          <button class="help-tab" id="helpTabApproach" type="button" role="tab" aria-selected="false" aria-controls="helpApproach">Approach</button>
+        </div>
+        <div class="help-modal-body">
+          <section id="helpInstructions" role="tabpanel" aria-labelledby="helpTabInstructions">
+            <ol class="help-list">
+              <li>In <strong>Logs Explorer</strong>, click a row to view its details.</li>
+              <li>Choose a case status or add notes, then select <strong>Save Investigation</strong>. Unsaved records show <strong>Not saved</strong>.</li>
+              <li>Open <strong>Investigations</strong> to review saved cases. Click a row to update its status or notes.</li>
+              <li>In <strong>Analytics &amp; Graphs</strong>, click a chart item to see matching logs.</li>
+            </ol>
+          </section>
+          <section id="helpApproach" role="tabpanel" aria-labelledby="helpTabApproach" hidden>
+            <ul class="help-list">
+              <li><strong>Frontend:</strong> HTML, CSS, and JavaScript.</li>
+              <li><strong>Backend:</strong> Node.js with Express, exposing API routes for logs, analytics, and investigations.</li>
+              <li><strong>Database:</strong> SQLite stores firewall records, accounts, and saved investigation notes/statuses.</li>
+              <li><strong>Data flow:</strong> the browser requests records from the backend; the backend reads or updates SQLite and returns JSON.</li>
+              <li><strong>Charts:</strong> Chart.js summarizes the stored synthetic records; attack labels are shown from the data, not detected by this app.</li>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <!-- Log Detail and Investigation Modal -->
+    <div class="modal-backdrop" id="detailModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <h3 id="modalLogId">LOG-0001</h3>
+            <span class="badge" id="modalStatusBadge">SUCCESS</span>
+          </div>
+          <button class="btn-close" id="btnCloseDetail">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="detail-label">Timestamp</span>
+              <span class="detail-value" id="modalTime">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Firewall Appliance</span>
+              <span class="detail-value" id="modalFirewall">FW-EDGE-01</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Source Endpoint</span>
+              <span class="detail-value" id="modalSource">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Destination Endpoint</span>
+              <span class="detail-value" id="modalDest">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Protocol & Service</span>
+              <span class="detail-value" id="modalProtoService">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Firewall Rule</span>
+              <span class="detail-value" id="modalRule">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Enforced Action</span>
+              <span class="detail-value" id="modalAction">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Attack Label in Log</span>
+              <span class="detail-value" id="modalAttack">None</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Packets / Bytes</span>
+              <span class="detail-value" id="modalVolume">-</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Zone Direction</span>
+              <span class="detail-value" id="modalZones">-</span>
+            </div>
+          </div>
+
+          <section class="investigation-panel">
+            <h4>Investigation</h4>
+            <label for="caseStatusInput">Case status</label>
+            <select id="caseStatusInput">
+              <option>New</option>
+              <option>Investigating</option>
+              <option>Resolved</option>
+            </select>
+            <label for="caseNotesInput">Analyst notes</label>
+            <textarea id="caseNotesInput" rows="4" maxlength="2000" placeholder="Record investigation findings or next steps..."></textarea>
+            <div class="case-save-message" id="caseSaveMessage" role="status" aria-live="polite"></div>
+          </section>
+
+          <div class="raw-log-wrap">
+            <div class="raw-log-label">Raw Syslog Message (from SQLite DB):</div>
+            <code class="raw-log-text" id="modalRawLog">-</code>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary" id="btnSaveInvestigation">Save Investigation</button>
+          <button class="btn btn-secondary" id="btnDismissDetail">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">Logged in successfully</div>
+
+  <!-- Frontend Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
