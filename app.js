@@ -531,7 +531,9 @@
         savedInvestigation = data;
       }
 
-      allLogs = allLogs.map(log => log.id === currentLogId ? { ...log, ...savedInvestigation } : log);
+      const updatedLog = log => log.id === currentLogId ? { ...log, ...savedInvestigation } : log;
+      allLogs = allLogs.map(updatedLog);
+      filteredLogs = filteredLogs.map(updatedLog);
       renderTablePage();
       renderInvestigations();
       closeDetailModal();
