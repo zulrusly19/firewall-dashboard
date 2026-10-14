@@ -8,7 +8,7 @@ A clean, minimalist full-stack application built to analyze firewall traffic rec
 
 1. **Authentication Gate**:
    - Users must **Sign In** or **Register** before accessing the dashboard. Successful registration returns to the sign-in form; the user signs in separately. Sign-in state lasts for the current browser tab and is cleared when that tab is closed.
-   - User registrations are stored in the local **SQLite database** (`database.sqlite`) with SHA-256 password hashes. This demo authentication is not production-ready.
+   - User registrations are stored in SQLite locally or Neon Postgres on Vercel, with SHA-256 password hashes. This demo authentication is not production-ready.
 
 2. **500 Synthetic Firewall Records**:
    - Sampled evenly from a 394k-line sample log.
@@ -28,8 +28,8 @@ A clean, minimalist full-stack application built to analyze firewall traffic rec
    - Both log and investigation tables support vertical and horizontal scrolling. Review saved cases and their status counts in the **Investigations** navigation view; filter the queue to show all, new, investigating, or resolved cases.
    - Open **Instructions & Approach** at the bottom of the dashboard for usage steps and a short overview of the app's stack and data flow.
 
-5. **Node.js & SQLite Backend**:
-   - Uses Node.js's built-in SQLite engine (no external database server needed).
+5. **Node.js, SQLite & Neon Backend**:
+   - Uses Node.js's built-in SQLite engine locally. When `DATABASE_URL` is configured, the server uses Neon Postgres instead.
 
 > The dataset is synthetic. Attack labels are read from the sample records; the dashboard does not detect attacks.
 
@@ -55,4 +55,11 @@ A clean, minimalist full-stack application built to analyze firewall traffic rec
 ## 🌐 Deploy to Vercel
 
 Push this directory to your GitHub repository and import it into [vercel.com](https://vercel.com).
-`vercel.json` is pre-configured to run `server.js` seamlessly.
+`vercel.json` is pre-configured to run `server.js`. For persistent registration and investigation data:
+
+1. Create a Neon Postgres database from the Vercel Marketplace, or create one at [neon.tech](https://neon.tech).
+2. Copy the database connection string from Neon.
+3. In Vercel, open **Project Settings → Environment Variables** and add `DATABASE_URL` with that connection string for Production (and Preview if needed).
+4. Redeploy the project. On its first API request, the app creates its tables and seeds the firewall records.
+
+Do not commit the connection string to Git. Local development continues to use `database.sqlite` unless you set `DATABASE_URL` locally.
