@@ -176,7 +176,7 @@
 
   function getLoggedInUser() {
     try {
-      return JSON.parse(localStorage.getItem('current_user'));
+      return JSON.parse(sessionStorage.getItem('current_user'));
     } catch {
       return null;
     }
@@ -209,7 +209,7 @@
   }
 
   function setLoggedInUser(user) {
-    localStorage.setItem('current_user', JSON.stringify(user));
+    sessionStorage.setItem('current_user', JSON.stringify(user));
     showDashboard(user);
   }
 
@@ -938,7 +938,7 @@
 
     // Logout
     btnLogout.addEventListener('click', () => {
-      localStorage.removeItem('current_user');
+      sessionStorage.removeItem('current_user');
       authAlert.textContent = '';
       authAlert.className = 'alert-box';
       authAlert.style.display = 'none';

@@ -7,7 +7,7 @@ A clean, minimalist full-stack application built to analyze firewall traffic rec
 ## 🎯 Architecture & Features
 
 1. **Authentication Gate**:
-   - Users must **Sign In** or **Register** before accessing the dashboard. Successful registration returns to the sign-in form; the user signs in separately. Successful registration returns to the sign-in form; the user signs in separately.
+   - Users must **Sign In** or **Register** before accessing the dashboard. Successful registration returns to the sign-in form; the user signs in separately. Sign-in state lasts for the current browser tab and is cleared when that tab is closed.
    - User registrations are stored in the local **SQLite database** (`database.sqlite`) with SHA-256 password hashes. This demo authentication is not production-ready.
 
 2. **500 Synthetic Firewall Records**:
