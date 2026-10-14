@@ -14,9 +14,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const useNeon = Boolean(process.env.DATABASE_URL);
 const neonSql = useNeon ? neon(process.env.DATABASE_URL) : null;
+const missingVercelDatabase = Boolean(process.env.VERCEL) && !useNeon;
 let db = null;
 
-if (!useNeon) {
+if (!useNeon && !missingVercelDatabase) {
   const { DatabaseSync } = require('node:sqlite');
   db = new DatabaseSync(path.join(__dirname, 'database.sqlite'));
 }
@@ -183,6 +184,12 @@ async function initializeDatabase() {
 }
 
 app.use('/api', async (req, res, next) => {
+  if (missingVercelDatabase) {
+    return res.status(500).json({
+      error: 'DATABASE_URL is missing from this Vercel deployment. Add it in Project Settings → Environment Variables, then redeploy.'
+    });
+  }
+
   try {
     await initializeDatabase();
     next();
